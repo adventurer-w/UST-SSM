@@ -316,10 +316,10 @@ class Sine(nn.Module):
     def forward(self, x):
         return torch.sin(self.w0 * x)
 
-class K_Norm(nn.Module):
-    def __init__(self, out_dim, k_group_size, alpha, beta):
+class SSM_Norm(nn.Module):
+    def __init__(self, out_dim, k_size, alpha, beta):
         super().__init__()
-        self.group_feat = GroupFeature(k_group_size)
+        self.group_feat = GroupFeature(k_size)
         self.affine_alpha_feat = nn.Parameter(torch.ones([1, 1, 1, out_dim]))
         self.affine_beta_feat = nn.Parameter(torch.zeros([1, 1, 1, out_dim]))
 
@@ -345,7 +345,7 @@ class K_Norm(nn.Module):
         return knn_x_w
 
 
-class K_Pool(nn.Module):
+class SSM_Pool(nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -372,15 +372,15 @@ class Post_ShareMLP(nn.Module):
             return self.share_mlp(x)
 
 class STSAL(nn.Module):
-    def __init__(self, lga_out_dim, k_group_size, alpha, beta, mlp_in_dim, mlp_out_dim, num_group=128, act_layer=nn.SiLU, drop_path=0., norm_layer=nn.LayerNorm,):
+    def __init__(self, n_out_dim, k_size, alpha, beta, mlp_in_dim, mlp_out_dim, num_group=128, act_layer=nn.SiLU, drop_path=0., norm_layer=nn.LayerNorm,):
         super().__init__()
         self.num_group = num_group
-        self.lga_out_dim = lga_out_dim
+        self.n_out_dim = n_out_dim
 
-        self.lga = K_Norm(self.lga_out_dim, k_group_size, alpha, beta)
-        self.kpool = K_Pool()
+        self.ssm_norm = SSM_Norm(self.n_out_dim, k_size, alpha, beta)
+        self.ssm_pool = SSM_Pool()
         self.mlp = Post_ShareMLP(mlp_in_dim, mlp_out_dim)
-        self.pre_norm_ft = norm_layer(self.lga_out_dim)
+        self.pre_norm_ft = norm_layer(self.n_out_dim)
 
         self.act = act_layer()
         
@@ -388,8 +388,8 @@ class STSAL(nn.Module):
     def forward(self, center, feat):
 
         B, G, C = feat.shape
-        lc_x_w = self.lga(center, feat)         
-        lc_x_w = self.kpool(lc_x_w)
+        lc_x_w = self.ssm_norm(center, feat)         
+        lc_x_w = self.ssm_pool(lc_x_w)
 
         lc_x_w = self.pre_norm_ft(lc_x_w.permute(0, 2, 1)) 
         lc_x = self.mlp(lc_x_w.permute(0, 2, 1)) 
@@ -407,7 +407,7 @@ class AggregationSSM(nn.Module):
                 drop_path=0., 
                 act_layer=nn.SiLU, 
                 norm_layer=nn.LayerNorm,
-                k_group_size=8, 
+                k_size=8, 
                 alpha=100, 
                 beta=1000,
                 num_group=128,
@@ -420,12 +420,12 @@ class AggregationSSM(nn.Module):
         self.norm2 = norm_layer(dim)
         
         self.num_group = num_group
-        self.k_group_size = k_group_size
+        self.k_size = k_size
         
         self.num_heads = num_heads
         
-        self.stsal = STSAL(lga_out_dim=dim*2, 
-                    k_group_size=self.k_group_size, 
+        self.stsal = STSAL(n_out_dim=dim*2, 
+                    k_size=self.k_size, 
                     alpha=alpha, 
                     beta=beta, 
                     mlp_in_dim=dim*2, 

@@ -176,17 +176,17 @@ class UST(nn.Module):
 
 
         self.ssm_blocks = nn.ModuleList()
-        initial_k_group_size = 12
+        initial_k_size = 12
         for i in range(self.hos_branches_num):
             branch_ssm_blocks = nn.ModuleList()
             for _ in range(self.depth):
-                k_group_size = max(1, initial_k_group_size // (2 ** i))
+                k_size = max(1, initial_k_size // (2 ** i))
                 ssm_block = AggregationSSM(
                     dim=dim,
                     num_group=768,
                     num_heads=heads,
                     drop_path=0.1,
-                    k_group_size=k_group_size,
+                    k_size=k_size,
                 )
                 branch_ssm_blocks.append(ssm_block)
             self.ssm_blocks.append(branch_ssm_blocks)

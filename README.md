@@ -12,10 +12,6 @@ Point cloud videos capture complex 3D motion while reducing the effects of light
 
 To set up the environment for this repository, ensure you have the following dependencies:
 
-- **PyTorch** version 1.12.0
-- **Python** version 3.8
-- **CUDA** version 11.3
-
 You can install all the necessary Python packages by running:
 
 ```bash
@@ -40,8 +36,8 @@ pip install -r requirements.txt
 3. **SSM**  
 
    ```bash
-   pip install causal-conv1d==1.1.1
-   pip install mamba-ssm==1.1.1
+   pip install causal-conv1d
+   pip install mamba-ssm
    ```
 
 For more detailed settings, you can refer to the `requirements.yml` file.
